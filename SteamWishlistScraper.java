@@ -1,3 +1,9 @@
+/*
+ 
+ *Tim Haskins
+ *March 25, 2016
+
+ */
 import java.io.*;
 
 import org.jsoup.*;
@@ -13,19 +19,33 @@ import org.jsoup.select.*;
  *Expected arguments:
  *args[0]: The name of the text file that this program will print to.
  *args[1]: The ID or profile of the steam user in question.
-            Example: 76561198099289598, Johnny\ Carlo
+            Example: 76561198099289598, 
  */
 
 public class SteamWishlistScraper
 {
+   static Document doc;
+   
    public static void main (String [] args)
    {
-      String id = args[1];
+      boolean itWorked = check(args[1]);
+      if(!itWorked){return;}
+      
+      String out = parseThrough();
+      writeOut(out, args[0]);
+      System.out.print("Done.\n");
+   }
+   
+   public static boolean check(String id)
+   {
+      //this method checks to see if the users argument leads to a legitimate 
+      // wishlist. If it does, this method saves the webpage to the doc variable
+      // and returns true.
+      // Otherwise, it returns false.
       String url = "http://steamcommunity.com/profiles/" + id + "/wishlist";
       String url2 = "http://steamcommunity.com/id/" + id + "/wishlist";
       System.out.print("Trying " + url + "\n");
       
-      Document doc = Jsoup.parse("<html></html>");
       try
       {
          doc = Jsoup.connect(url).get();
@@ -36,36 +56,38 @@ public class SteamWishlistScraper
             if( doc.title( ).equals( "Steam Community :: Error" ) )
             {
                System.out.print("Neither worked. Exiting...\n");
-               return;
+               return false;
             }
          }
          //System.out.print(doc.title());
          if( doc.title().indexOf("::") == doc.title().lastIndexOf("::") )
          {
             System.out.print( "Looks like the account is private. Exiting...\n" );
-            return;
+            return false;
          }
          System.out.print("Got it!\n");
          
       }
       catch(IOException e){}
-      
-      Element thing = doc.getElementById("wishlist_items");
-      
-      String out = parseThrough(thing);
-      writeOut(out, args[0]);
-      System.out.print("Done.\n");
+      return true;
    }
    
-   public static String parseThrough(Element in)
+   public static String parseThrough()
    {
-      Elements items = in.getElementsByClass("wishlistRowItem");
+      Element thing = doc.getElementById("wishlist_items");
+      Elements items = thing.getElementsByClass("wishlistRowItem");
       String give = "";
       
       for(Element item : items)
       {
          give += item.getElementsByClass("ellipsis").first().text() + " ... ";
-         if(item.getElementsByClass("price").first() == null)
+         
+         if(item.getElementsByClass("price").first()        == null && 
+            item.getElementsByClass("discount_pct").first() == null)
+         {
+            give += "Free\n";
+         }
+         else if(item.getElementsByClass("price").first() == null)
          {
             give += 
                  item.getElementsByClass("discount_pct").first().text()            + " off " 
